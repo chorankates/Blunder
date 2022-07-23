@@ -1,0 +1,15 @@
+POST /admin/new-content HTTP/1.1
+Host: blunder.htb
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:101.0) Gecko/20100101 Firefox/101.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 300
+Origin: http://blunder.htb
+Connection: close
+Referer: http://blunder.htb/admin/new-content
+Cookie: BLUDIT-KEY=jp6n9c005u9mkcr285ktnq13f0
+Upgrade-Insecure-Requests: 1
+
+tokenCSRF=6995b27a72c30b0664f5fc6a1a4e7d6764aeda3c&parent=&uuid=6aadeb21646da6f22bd1373cc04d02b9&type=published&coverImage=&content=%3Cp%3Efffff%3C%2Fp%3E&category=&description=&date=2022-07-23+20%3A53%3A01&typeSelector=published&position=7&tags=&parentTMP=&template=&externalCoverImage=&slug=&title=
