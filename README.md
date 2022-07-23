@@ -1,5 +1,14 @@
 # [05 - Blunder](https://app.hackthebox.com/machines/Blunder)
 
+  * [description](#description)
+  * [walkthrough](#walkthrough)
+    * [recon](#recon)
+    * [80](#80)
+    * [fergus](#fergus)
+    * [hugo](#hugo)
+    * [CVE-2021-4034](#CVE-2021-4034)
+  * [flag](#flag)
+
 ![Blunder.png](Blunder.png)
 
 ## description
